@@ -8,8 +8,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-var klassenzaehler int
-
 func main() {
 	// connect to MySQL DB
 	db, err := sql.Open("mysql", "root:@tcp(localhost:3306)/m320schueler")
@@ -80,12 +78,17 @@ func main() {
 		klasseSchuelerArray = append(klasseSchuelerArray, singleKlasseSchueler)
 	}
 
-	//Schüler Object erstellen
-	createSchueler(schuelerArray, klasseArray, klasseSchuelerArray)
-	fmt.Println(klassenzaehler)
+	// Schüler Objekte erstellen
+	var allSchuelers [][]interface{} = createSchueler(schuelerArray, klasseArray, klasseSchuelerArray)
+
+	for _, schueler := range allSchuelers {
+		fmt.Println(schueler)
+	}
 }
 
-func createSchueler(schuelerArray [][]string, klasseArray [][]string, klasseSchuelerArray [][]int) {
+func createSchueler(schuelerArray [][]string, klasseArray [][]string, klasseSchuelerArray [][]int) [][]interface{} {
+	var allSchueler [][]interface{}
+
 	for _, schueler := range schuelerArray {
 		var benutzername string = schueler[1]
 		var name string = schueler[2]
@@ -98,8 +101,9 @@ func createSchueler(schuelerArray [][]string, klasseArray [][]string, klasseSchu
 		var klassen []string = getKlassen(id, klasseSchuelerArray, klasseArray)
 
 		var schuelerObject []interface{} = []interface{}{benutzername, name, vorname, klassen}
-		fmt.Println(schuelerObject...)
+		allSchueler = append(allSchueler, schuelerObject)
 	}
+	return allSchueler
 }
 
 func getKlassen(id int, klasseSchuelerArray [][]int, klasseArray [][]string) []string {
@@ -118,7 +122,6 @@ func getKlassen(id int, klasseSchuelerArray [][]int, klasseArray [][]string) []s
 			}
 			if id == klassenId {
 				klassenNames = append(klassenNames, klassen[1])
-				klassenzaehler++
 			}
 		}
 	}
