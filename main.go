@@ -1,9 +1,14 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"strconv"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -79,16 +84,35 @@ func main() {
 	}
 
 	// Schüler Objekte erstellen
-	var allSchuelers [][]interface{} = createSchueler(schuelerArray, klasseArray, klasseSchuelerArray)
+	var allSchuelers []map[string]interface{} = createSchueler(schuelerArray, klasseArray, klasseSchuelerArray)
 
+	// Konfigurieren Sie den MongoDB-Client
+	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
+	client, err := mongo.Connect(context.Background(), clientOptions)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	defer client.Disconnect(context.Background())
+
+	// Wählen Sie die Datenbank und die Sammlung aus
+	database := client.Database("m165schueler")
+	collection := database.Collection("schueler")
+
+	// Fügen Sie Daten in die Sammlung ein
 	for _, schueler := range allSchuelers {
-		fmt.Println(schueler)
+		data := bson.M(schueler)
+		result, err := collection.InsertOne(context.Background(), data)
+		if err != nil {
+			fmt.Println(err.Error())
+			return
+		}
+		fmt.Println(result.InsertedID)
 	}
 }
 
-func createSchueler(schuelerArray [][]string, klasseArray [][]string, klasseSchuelerArray [][]int) [][]interface{} {
-	var allSchueler [][]interface{}
-
+func createSchueler(schuelerArray [][]string, klasseArray [][]string, klasseSchuelerArray [][]int) []map[string]interface{} {
+	var allSchuelers []map[string]interface{}
 	for _, schueler := range schuelerArray {
 		var benutzername string = schueler[1]
 		var name string = schueler[2]
@@ -100,10 +124,15 @@ func createSchueler(schuelerArray [][]string, klasseArray [][]string, klasseSchu
 		}
 		var klassen []string = getKlassen(id, klasseSchuelerArray, klasseArray)
 
-		var schuelerObject []interface{} = []interface{}{benutzername, name, vorname, klassen}
-		allSchueler = append(allSchueler, schuelerObject)
+		schuelerMap := make(map[string]interface{})
+		schuelerMap["benutzername"] = benutzername
+		schuelerMap["name"] = name
+		schuelerMap["vorname"] = vorname
+		schuelerMap["klassen"] = klassen
+
+		allSchuelers = append(allSchuelers, schuelerMap)
 	}
-	return allSchueler
+	return allSchuelers
 }
 
 func getKlassen(id int, klasseSchuelerArray [][]int, klasseArray [][]string) []string {
