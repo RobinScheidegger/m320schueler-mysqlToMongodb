@@ -173,7 +173,6 @@ func mongoDb(allSchuelers []map[string]interface{}) {
 		} else {
 			delete(schueler, "klassen")
 			data = bson.M(schueler)
-			fmt.Println(data)
 		}
 		result, err := collection.InsertOne(context.Background(), data)
 		if err != nil {
